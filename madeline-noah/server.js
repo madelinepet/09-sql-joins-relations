@@ -8,10 +8,10 @@ const app = express();
 
 // Windows and Linux users: You should have retained the user/password from the pre-work for this course.
 // Your OS may require that your conString is composed of additional information including user and password.
-// const conString = 'postgres://postgres@localhost:5432/kilovolt';
+const conString = 'postgres://postgres@localhost:5432/kilovolt';
 
 // Mac:
-const conString = 'postgres://localhost:5432/kilovolt';
+// const conString = 'postgres://localhost:5432/kilovolt';
 
 const client = new pg.Client(conString);
 client.connect();
@@ -20,7 +20,7 @@ client.on('error', error => {
 });
 
 app.use(express.json());
-// app.use(express.urlencoded());
+app.use(express.urlencoded());
 app.use(express.static('./public'));
 
 // REVIEW: These are routes for requesting HTML resources.
@@ -30,7 +30,7 @@ app.get('/new', (request, response) => {
 
 // REVIEW: These are routes for making API calls to enact CRUD operations on our database.
 app.get('/articles', (request, response) => {
-  client.query(`'SELECT * FROM articles'`)
+  client.query(`SELECT * FROM articles INNER JOIN authors ON articles.author_id = authors.author_id`)
     .then(result => {
       response.send(result.rows);
     })
@@ -40,10 +40,13 @@ app.get('/articles', (request, response) => {
 });
 
 app.post('/articles', (request, response) => {
+  console.log('body', request.body);
   client.query(
     `INSERT INTO
     authors(author, "authorUrl")
-    values ($1, $2);`,
+    VALUES($1, $2)
+    ON CONFLICT DO NOTHING`,
+    //line above prevents duplicates
     [
       request.body.author,
       request.body.authorUrl
@@ -57,9 +60,12 @@ app.post('/articles', (request, response) => {
 
   function queryTwo() {
     client.query(
-      `SELECT author FROM authors
-      WHERE author_id = $1;`,
-      [],
+      `SELECT author_id FROM authors
+      WHERE author = $1;`,
+      //selecting author id when the
+      [
+        request.body.author,
+      ],
       function(err, result) {
         if (err) console.error(err);
 
@@ -78,7 +84,8 @@ app.post('/articles', (request, response) => {
         request.body.category,
         request.body.publishedOn,
         request.body.body,
-        request.body.author_id
+        //do not need request.body for author_id because it was passed in above
+        author_id
       ],
       function(err) {
         if (err) console.error(err);
@@ -93,12 +100,12 @@ app.put('/articles/:id', function(request, response) {
     `UPDATE authors
     SET
     author = $1, "authorUrl" = $2
-    `
+    `,
     [
       request.body.author,
       request.body.authorUrl,
       request.body.author_id
-    ],
+    ]
   )
     .then(() => {
       client.query(
