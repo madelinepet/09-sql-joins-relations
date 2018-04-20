@@ -8,10 +8,10 @@ const app = express();
 
 // Windows and Linux users: You should have retained the user/password from the pre-work for this course.
 // Your OS may require that your conString is composed of additional information including user and password.
-const conString = 'postgres://postgres@localhost:5432/kilovolt';
+// const conString = 'postgres://postgres@localhost:5432/kilovolt';
 
 // Mac:
-// const conString = 'postgres://localhost:5432/kilovolt';
+const conString = 'postgres://localhost:5432/kilovolt';
 
 const client = new pg.Client(conString);
 client.connect();
@@ -90,13 +90,30 @@ app.post('/articles', (request, response) => {
 
 app.put('/articles/:id', function(request, response) {
   client.query(
-    ``,
-    []
+    `UPDATE authors
+    SET
+    author = $1, "authorUrl" = $2
+    `
+    [
+      request.body.author,
+      request.body.authorUrl,
+      request.body.author_id
+    ],
   )
     .then(() => {
       client.query(
-        ``,
-        []
+        `UPDATE articles
+        SET
+        title = $1, category = $2, "publishedOn" = $3, body = $4
+        WHERE author_id = $5;
+        `,
+
+        [request.body.title,
+          request.body.category,
+          request.body.publishedOn,
+          request.body.body,
+          request.body.author_id
+        ]
       )
     })
     .then(() => {
