@@ -100,6 +100,7 @@ app.put('/articles/:id', function(request, response) {
     `UPDATE authors
     SET
     author = $1, "authorUrl" = $2
+    WHERE author_id = $3;
     `,
     [
       request.body.author,
